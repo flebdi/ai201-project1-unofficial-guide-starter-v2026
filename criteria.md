@@ -55,41 +55,38 @@ in at least 4 of 5 tries.
 
 ---
 
-## 4. Something about your chunks
+## 4. Chunks read as complete thoughts
 
-<!-- YOU WRITE THIS ONE.
+At least 4 of 5 sampled chunks read as a complete thought, with no sentence
+cut in half at either end.
 
-     How would you know if your chunks were the right size? Name something
-     countable or observable.
-
-     Examples of the right shape — don't copy these, they should come from
-     what you actually saw in Milestone 3:
-       - "At least 4 of 5 sampled chunks read as a complete thought, with no
-          sentence cut in half at either end."
-       - "No chunk is shorter than 200 characters, since anything below that
-          in my corpus turned out to be a heading with no content under it." -->
-
-
-
-**Why this target:**
-
-
+**Why this target:** On `campus_life`, indexing produces 88 chunks from 88
+documents (317 characters on average, shortest 178, longest 549) — the
+800-character fallback chunker never actually splits anything, since every
+post is shorter than that. So "right-sized" here mostly checks that the
+chunker left each post intact rather than that it made a good cut. I picked
+4 of 5 instead of 5 of 5 because a few posts (like the dining hall
+follow-ups) are short replies to another post and might read as slightly
+incomplete without the original — I want room to notice that without failing
+the criterion outright.
 
 ---
 
-## 5. Your choice
+## 5. Named source is the correct source
 
-<!-- YOU WRITE THIS ONE TOO.
+For at least 4 of 5 test questions, the source named in the answer is the
+document that actually contains the answer — not merely any document that
+got retrieved and cited.
 
-     Pick something you actually care about getting right. It could be about
-     speed, about refusals, about a particular kind of question your corpus
-     handles badly, about source attribution being correct rather than merely
-     present — anything, as long as it names a number or an observable
-     outcome. -->
-
-
-
-**Why this target:**
+**Why this target:** Criterion 2 only checks that an answer names *a* source
+at all, which a system could satisfy while citing the wrong file. This one
+checks correctness of attribution, which matters more on this corpus because
+several topics are split across near-duplicate documents (e.g.
+`housing_morrow_house.txt` vs. `housing_morrow_house_laundry.txt` vs.
+`housing_morrow_house_noise.txt`) — it would be easy for the system to name
+a plausible-looking but wrong file from the same cluster. I used 4 of 5, the
+same bar as my other criteria, since I have no reason yet to think this is
+harder or easier than the others.
 
 
 
