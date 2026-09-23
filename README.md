@@ -128,30 +128,50 @@ or dining hall) without needing a neighboring chunk or its filename.
 
 ## Sample Answer
 
-<!-- One complete question and answer, pasted as text, with the source line
-     visible. Milestone 4. -->
-
-**Question:**
+**Question:** How long is the wait at Kestrel Commons during lunch?
 
 **Answer:**
 
 ```
+Based on the provided documents, the wait time at Kestrel Commons is 20 to
+25 minutes between 12:15 and 1:00, and under 5 minutes before 11:45.
+
+Source: dining_kestrel_commons.txt (and dining_kestrel_commons_followup.txt)
 ```
 
-**My relevance cutoff:**
+(Best distance 0.167, cutoff 0.6 — well inside the gate.)
 
-<!-- The number you set in config.py, and how you got there.
+**My relevance cutoff:** 0.6 (the starter's default — I measured against it
+rather than changing it, since it already sits in the gap).
 
-     You ran five questions your corpus covers and the five in OUT_OF_SCOPE
-     that it clearly doesn't, and wrote down the best distance for each. What
-     did those two groups look like? Where was the gap? Put the actual numbers
-     here — the table below wants all ten rows.
-
-     Milestone 4. -->
+I ran my 5 test questions and the 5 `OUT_OF_SCOPE` questions through
+`python app.py retrieve "..."` and recorded the best (top-1) distance for
+each. The two groups don't overlap at all — the worst in-corpus question
+(0.429) is still almost 0.4 below the best out-of-corpus question (0.825) —
+so 0.6 sits comfortably in the middle of a wide gap, not close to either
+edge.
 
 | Question | In corpus? | Best distance |
 |---|---|---|
-|  |  |  |
+| How long is the wait at Kestrel Commons during lunch? | yes | 0.167 |
+| Is there an enforced quiet time in Morrow House? | yes | 0.295 |
+| Can you study during your shift at an on-campus dining job? | yes | 0.265 |
+| How often does the campus shuttle run on weekdays? | yes | 0.425 |
+| Are the midterms curved in CS 210? | yes | 0.429 |
+| What is the capital of Mongolia? | no | 0.825 |
+| How do I change the oil in a diesel engine? | no | 0.934 |
+| Who won the 1994 World Cup? | no | 0.886 |
+| What is the recommended dosage of ibuprofen for a headache? | no | 0.844 |
+| How do I write a for loop in Rust? | no | 0.896 |
+
+I also checked the grounding instruction (`GROUNDING_INSTRUCTION` in
+`generate.py`) against a near-miss case: a question that's topically
+in-corpus (so it passes the gate) but whose specific fact isn't actually in
+any document. Asking "What professor teaches CS 210?" retrieved the CS 210
+docs at distance 0.440 (under the 0.6 cutoff, so the gate let it through),
+and the model correctly answered "I don't have enough information... the
+provided documents do not mention the professor's name" instead of
+inventing one. That held without needing to tighten the instruction further.
 
 ## How I Used AI
 
