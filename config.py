@@ -24,11 +24,16 @@ CORPUS = os.getenv("AI201_CORPUS", "campus_life")
 
 
 # ─── Chunking (Milestone 3) ──────────────────────────────────────────────────
-# These are deliberately plain, generic numbers. Milestone 3 is where you
-# replace them with numbers that fit the documents you actually read.
+# campus_life posts are short, single-topic, and self-contained — the longest
+# is 549 characters. 600 comfortably holds any real post as one chunk while
+# staying tight enough that an unusually long/rambling post would actually
+# get split on a paragraph or sentence boundary instead of being swallowed
+# whole by an oversized window. 80 characters of overlap (~one sentence) means
+# that if a split ever does happen, the sentence that gave the next piece its
+# context isn't lost at the boundary.
 
-CHUNK_SIZE = 800        # characters per chunk
-CHUNK_OVERLAP = 120     # characters shared between neighbouring chunks
+CHUNK_SIZE = 600        # characters per chunk
+CHUNK_OVERLAP = 80      # characters shared between neighbouring chunks
 
 
 # ─── Retrieval (Milestone 4) ─────────────────────────────────────────────────

@@ -22,6 +22,7 @@ to it, write down what you saw, and move on. That's a real observation about
 your pipeline, not giving up.
 """
 
+import re
 from dataclasses import dataclass
 
 import config
@@ -80,24 +81,103 @@ def fallback_split(
     return chunks
 
 
+_SENTENCE_SPLIT = re.compile(r"(?<=[.!?])\s+")
+
+
+def _sentences(paragraph: str) -> list[str]:
+    return [s.strip() for s in _SENTENCE_SPLIT.split(paragraph.strip()) if s.strip()]
+
+
+def _units(text: str, limit: int) -> list[str]:
+    """
+    Break a document into pieces short enough to pack without ever cutting a
+    sentence in half.
+
+    Paragraphs are the natural unit for campus_life posts — each one already
+    holds a complete thought. A paragraph is only broken further, into
+    sentences, if it alone is longer than `limit`, which never happens in
+    this corpus but keeps the function honest on anything longer.
+    """
+    units: list[str] = []
+    for paragraph in re.split(r"\n{2,}", text.strip()):
+        paragraph = paragraph.strip()
+        if not paragraph:
+            continue
+        if len(paragraph) <= limit:
+            units.append(paragraph)
+        else:
+            units.extend(_sentences(paragraph))
+    return units
+
+
+def _pack(units: list[str], limit: int, overlap: int) -> list[str]:
+    """
+    Greedily join units into pieces up to `limit` characters, repeating the
+    trailing units of one piece at the start of the next so a chunk boundary
+    never falls mid-sentence and never drops the sentence right before it.
+    """
+
+    def length(pieces: list[str]) -> int:
+        return sum(len(p) for p in pieces) + max(len(pieces) - 1, 0)
+
+    pieces: list[str] = []
+    current: list[str] = []
+
+    for unit in units:
+        if current and length(current + [unit]) > limit:
+            pieces.append("\n\n".join(current))
+            carry: list[str] = []
+            for prior in reversed(current):
+                carry.insert(0, prior)
+                if length(carry) >= overlap:
+                    break
+            current = carry
+        current.append(unit)
+
+    if current:
+        pieces.append("\n\n".join(current))
+
+    return pieces
+
+
 def split_documents(documents: list[Document]) -> list[Chunk]:
     """
-    Split documents into chunks. ⚠️ REPLACE THE BODY OF THIS IN MILESTONE 3.
+    Split documents on paragraph and sentence boundaries, not a fixed
+    character window.
 
-    Right now it just calls the fallback. That is the plain, generic behaviour
-    the brief is talking about.
+    campus_life posts are short and single-topic — the longest is 549
+    characters, well inside CHUNK_SIZE (600) — so almost every post survives
+    as exactly one chunk, its paragraphs rejoined unchanged. The paragraph/
+    sentence packing in `_units`/`_pack` only starts doing real work on a
+    post that runs long enough to need it, and even then never cuts a
+    sentence in half.
 
-    When you write your own strategy, set `produced_by` to
-    "chunker.py::split_documents" so your README's Sample Chunks section names
-    the right function. `app.py chunks` prints that string for you.
-
-    Things worth thinking about before you write any code:
-      - Are your documents short posts or long guides?
-      - Is the useful information in one sentence, or spread over a paragraph?
-      - Would splitting on paragraph breaks keep more thoughts intact than
-        splitting on a character count?
+    One thing plain character windows get wrong on this corpus: a post's
+    topic (which dining hall, which building, which course) usually lives
+    only in its title line. A window that started partway through the body
+    would lose it. So every piece after the first gets that title line
+    carried back in.
     """
-    return fallback_split(documents)
+    limit = config.CHUNK_SIZE
+    overlap = config.CHUNK_OVERLAP
+
+    chunks: list[Chunk] = []
+    for doc in documents:
+        title = doc.text.split("\n", 1)[0].strip()
+        pieces = _pack(_units(doc.text, limit), limit, overlap)
+
+        for i, piece in enumerate(pieces):
+            text = piece if title in piece else f"{title}\n\n{piece}"
+            chunks.append(
+                Chunk(
+                    text=text,
+                    source=doc.source,
+                    index=i,
+                    produced_by="chunker.py::split_documents",
+                )
+            )
+
+    return chunks
 
 
 def describe(chunks: list[Chunk]) -> str:
