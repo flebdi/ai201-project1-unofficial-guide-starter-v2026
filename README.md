@@ -21,11 +21,14 @@
 
 ## What This Does
 
-<!-- Three or four sentences. Which corpus you picked, and the kinds of
-     questions your system answers. Write it for someone who has never seen
-     this repo.
-
-     Milestone 5. -->
+The Unofficial Guide answers questions about `campus_life`, a corpus of 88
+short student posts covering dining halls, dorms, courses, and the
+administrative rules nobody explains properly. Ask it something specific —
+"How long is the wait at Kestrel Commons during lunch?" or "Are the
+midterms curved in CS 210?" — and it retrieves the posts that actually
+answer it, names the source file, and refuses instead of guessing when
+nothing in the corpus is close enough to the question. It's a command-line
+tool: `python app.py ask "your question"`.
 
 ## Chunking Strategy
 
@@ -184,9 +187,29 @@ inventing one. That held without needing to tighten the instruction further.
 
      Milestone 5. -->
 
-**1.**
+**1.** I asked Claude to just write criteria #4 and #5 in `criteria.md`
+directly. It refused, pointing at the assignment's own instruction ("don't
+ask an AI to write your criteria... a criterion you didn't write is one you
+can't defend") and offered a guided-extraction alternative instead: it asked
+me multiple-choice questions about what "wrong-sized" would actually mean
+for my chunks, what fraction should count as passing, and what I wanted
+criterion #5 to hold the system accountable for. I picked the options
+(cuts off mid-sentence, 4 of 5, correct-source-not-just-present, 4 of 5), and
+the final sentences were assembled from those picks rather than written
+wholesale by the model. I did later tell it to draft the 5 test questions in
+`questions.py` outright, since that file didn't carry the same explicit
+warning — so the two files ended up written two different ways.
 
-**2.**
+**2.** I asked Claude to design and write the new chunker
+(`chunker.py::split_documents`) for Milestone 3. It came back with a
+paragraph/sentence-aware packer — 600-character chunk size, 80-character
+overlap, titles carried into any continuation piece — justified against the
+corpus's actual stats (88 docs, 317 characters average, 549 longest) rather
+than a round number. Rather than accepting the code as correct on sight, I
+had it re-run `python app.py index` and `python app.py chunks -n 5` so I
+could check the claimed output (88 chunks, same length stats, five sample
+chunks that each read as a complete thought) against what the code actually
+produced before it went in the README.
 
 <!-- ── Stretch features ─────────────────────────────────────────────────────
      Doing one? Say so here BEFORE you start. A feature this README never
