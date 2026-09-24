@@ -238,15 +238,75 @@ produced before it went in the README.
 
 | Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
 |---|---|---|---|---|---|
-| 1. Retrieved chunk contains the answer | 4 of 5 |  |  |  |  |
-| 2. Every answer names a source | 5 of 5 |  |  |  |  |
-| 3. Gate stops out-of-corpus questions | 4 of 5 |  |  |  |  |
-| 4. | | | | | |
-| 5. | | | | | |
+| 1. Retrieved chunk contains the answer | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 2. Every answer names a source | 5 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 3. Gate stops out-of-corpus questions | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 4. Chunks read as complete thoughts | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 5. Named source is the correct source | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
 
-<!-- Underneath, paste the REAL output for each criterion from one of your
-     runs — the actual text your system produced, not a description of it.
-     Name the file and function that produced it. -->
+No `scorer.py` exists yet, so I judged each of the 15 runs by hand against
+`results/run_2026-09-23_2032_before.md`. Criteria 1, 3, and 4 depend only on
+retrieval and chunking, which are deterministic — `store.py::search` and
+`chunker.py::split_documents` gave the identical sources/chunks on every run,
+so those rows are the same number three times over, same as the example.
+Criteria 2 and 5 depend on what the model actually wrote
+(`generate.py::answer_from_chunks`), which did vary in phrasing between runs
+— but not in substance, so they still landed at 5/5 every time.
+
+Real output, one example per criterion, from the `before` run:
+
+**Criterion 1** (retrieved chunk contains the answer) — `store.py::search`
+for "Are the midterms curved in CS 210?" retrieved `course_cs_210_exams.txt`,
+whose text is:
+```
+CS 210 Data Structures — assessment
+
+Two midterms and a final, all drawn from lecture material rather than the
+textbook. Midterms are curved, the final is not.
+
+Do the labs even though they're only 10% — the exams reuse the lab problems.
+```
+which contains the answer ("Midterms are curved").
+
+**Criterion 2** (every answer names a source) — `generate.py::answer_from_chunks`,
+run 1, for "How long is the wait at Kestrel Commons during lunch?":
+```
+The wait time at Kestrel Commons is 20 to 25 minutes between 12:15 and 1:00,
+and under 5 minutes before 11:45.
+
+Source: `dining_kestrel_commons.txt` (and similar information in
+`dining_kestrel_commons_followup.txt`).
+```
+
+**Criterion 3** (gate stops out-of-corpus questions) — `run_eval.py::check_out_of_scope`
++ `gate.py::check`:
+```
+refused  (best distance 0.825)  What is the capital of Mongolia?
+refused  (best distance 0.934)  How do I change the oil in a diesel engine?
+refused  (best distance 0.886)  Who won the 1994 World Cup?
+refused  (best distance 0.844)  What is the recommended dosage of ibuprofen for a headache?
+refused  (best distance 0.896)  How do I write a for loop in Rust?
+-> gate refused 5 of 5
+```
+
+**Criterion 4** (chunks read as complete thoughts) — `chunker.py::split_documents`,
+one of the 5 sampled chunks (also in Sample Chunks above):
+```
+Workload for HIST 118 Modern World History
+
+People keep asking so: a lot of reading, about 120 pages a week, but no
+problem sets. That's real time, not optimistic time.
+
+It's front-loaded — the first month is heavier than the rest, partly because
+you're learning the format.
+```
+A complete thought start to finish, no sentence cut off at either end.
+
+**Criterion 5** (named source is the correct source) — the same run 1 CS 210
+answer as above: it cites `course_cs_210_exams.txt` and `course_cs_210.txt`,
+and `course_cs_210_exams.txt` is the document that actually states "Midterms
+are curved" — not just any retrieved file (the other 4 retrieved sources
+that run were other courses' exam pages, correctly left out of the citation).
 
 ## Verdicts
 
