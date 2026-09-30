@@ -30,6 +30,20 @@ QUESTIONS = [
     {"question": "Are the midterms curved in CS 210?", "expects": "curved"},
 ]
 
+
+# Unit 2 stress set. NOT the graded test — the five above are, because they
+# were committed in unit 1 before any results existed. These were written in
+# unit 2 AFTER the five above scored 5/5, to probe whether that was the system
+# or just easy questions. Kept verbatim (typos included) so every run of them
+# is comparable. `python run_eval.py --stress` runs these instead.
+STRESS_QUESTIONS = [
+    {"question": "How are juniors and seniors prioritized in the housing lottery?", "expects": "Credit Hour"},
+    {"question": "What happens if a student wants to add or drop a course after the deadline?", "expects": "week six is the latest"},
+    {"question": "does work-study job count toward your financial aid the same way a nomral non work study job does?", "expects": "doesn't count"},
+    {"question": "What is the workload like for CS 210?", "expects":"8-10 hour of work outside of class"},
+    {"question": "What are the laundry conditions at Aldridge Hall?", "expects": " $1.75 wash, $1.50 dry, card only."},
+]
+
 # Questions from a different world entirely. Your gate should refuse all five.
 #
 # There are five of these because criterion 3 in criteria.md names a target of
@@ -46,6 +60,7 @@ OUT_OF_SCOPE = [
 ]
 
 
-def answered() -> list[dict]:
-    """The questions you've actually filled in."""
-    return [q for q in QUESTIONS if q.get("question", "").strip()]
+def answered(stress: bool = False) -> list[dict]:
+    """The questions you've actually filled in (or the stress set)."""
+    pool = STRESS_QUESTIONS if stress else QUESTIONS
+    return [q for q in pool if q.get("question", "").strip()]

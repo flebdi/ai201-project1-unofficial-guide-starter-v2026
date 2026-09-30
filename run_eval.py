@@ -76,13 +76,15 @@ def main():
     parser.add_argument("--variant", default="default")
     parser.add_argument("--top-k", type=int, default=None)
     parser.add_argument("--threshold", type=float, default=None)
+    parser.add_argument("--stress", action="store_true",
+                        help="run questions.STRESS_QUESTIONS instead of the graded QUESTIONS")
     args = parser.parse_args()
 
     corpus = args.corpus or config.CORPUS
     top_k = args.top_k or config.TOP_K
     threshold = config.THRESHOLD if args.threshold is None else args.threshold
 
-    items = qs.answered()
+    items = qs.answered(stress=args.stress)
     if not items:
         print(
             "questions.py has no questions in it yet.\n"
@@ -193,6 +195,7 @@ def write_report(rows, transcript, gate_rows, args, corpus, top_k, threshold, sc
         f"- Retrieval: `store.py::search`, chunks from `chunker.py::split_documents`",
         f"- Corpus: `{corpus}` (index variant `{args.variant}`)",
         f"- top-k: {top_k} · relevance cutoff: {threshold}",
+        f"- Question set: {'STRESS_QUESTIONS (unit 2 stress set, not graded)' if args.stress else 'QUESTIONS (graded, from unit 1)'}",
         f"- Runs per question: {n}, caching off",
         f"- When: {dt.datetime.now().strftime('%Y-%m-%d %H:%M')}",
         "",
