@@ -211,6 +211,20 @@ could check the claimed output (88 chunks, same length stats, five sample
 chunks that each read as a complete thought) against what the code actually
 produced before it went in the README.
 
+**3 (Unit 2).** I used Claude Code to run the Unit 2 test. It stopped me
+before running anything: my working copy had all five test questions
+swapped for harder ones after the originals had already scored 5/5, which
+would have broken the "criteria existed before results" history. It asked
+which set should be graded, and I chose to restore the Unit 1 questions and
+keep the harder ones as a separately labelled stress set. It also wrote a
+throwaway script to count criteria 1, 2 and 5 per run from the results
+files, and that caught the pattern I hadn't seen: the add/drop answers
+dropped their citation along with the answer, which made the criterion 2
+miss and the wrong answer one cause, not two. I picked the grounding-prompt
+fix from its suggestions because retrieval was already 5/5. I kept the
+`expects` phrase it pointed out as unmatchable ("latest") unchanged instead
+of editing it after seeing the answers.
+
 <!-- ── Stretch features ─────────────────────────────────────────────────────
      Doing one? Say so here BEFORE you start. A feature this README never
      claims earns nothing.
@@ -308,89 +322,262 @@ and `course_cs_210_exams.txt` is the document that actually states "Midterms
 are curved" — not just any retrieved file (the other 4 retrieved sources
 that run were other courses' exam pages, correctly left out of the citation).
 
-## Verdicts
+Later check with the scorer: once `scorer.py` existed, a scored re-run of the
+same five questions (`results/run_2026-09-23_2135.md`) came out pass on all
+15 runs, agreeing with the hand judgement above.
 
-<!-- MET or MISSED for each of the five, against the target you wrote last
-     unit — not a new one. Plus a sentence on how you decided. That sentence
-     matters most where it was close.
+### Stress set — Before
 
-     If your target said 4 of 5 and your runs came out 4, 3, 4, that's a MISS.
-     The target has to hold, not show up occasionally.
+All five graded questions cleared every criterion on the first try, which
+says more about the questions than the system. So I wrote five harder
+questions (`STRESS_QUESTIONS` in `questions.py`) to see whether the 5/5 was
+the system or just easy questions.
 
-     Milestone 2. -->
+**Read this plainly:** these were written *after* the graded results
+existed, so they are **not** the test my criteria are graded against. The
+Unit 1 `QUESTIONS` are, and they're unchanged in the commit history.
+The stress set is extra evidence, and it's where the improvement below got
+its target. (I briefly swapped the stress questions into `QUESTIONS` itself
+while trying them out. That swap was never committed, and I reverted it
+into a separate list rather than quietly replacing the originals.)
 
-| # | Criterion | Verdict | How I decided |
-|---|---|---|---|
-| 1 |  |  |  |
-| 2 |  |  |  |
-| 3 |  |  |  |
-| 4 |  |  |  |
-| 5 |  |  |  |
-
-## Diagnoses
-
-<!-- For each miss: which stage caused it, and how. The stage alone isn't
-     enough — you need the mechanism.
-
-     Not a diagnosis: "Question 3 didn't work."
-     A diagnosis:     "Question 3 asks about laundry costs. The answer is in
-                       one sentence that got split across two chunks, so
-                       neither chunk on its own contains it."
-
-     The five stages: loading → chunking → embedding → retrieval → generation.
-
-     Look for a pattern. If three misses all ask about numbers, that's one
-     problem, not three.
-
-     Missed nothing? Say so, then say honestly whether your targets were set
-     low, and which one you'd tighten and to what.
-
-     Milestone 3. -->
-
-## The Improvement
-
-**What I changed:**
-
-**Why I picked it:**
-
-<!-- Connect it to a specific diagnosis above in one sentence. If you can't,
-     you picked a fix because it sounded impressive. -->
-
-### Run Log — After
-
-<!-- Same format, same five criteria, three runs each.
-     `python run_eval.py --label after` -->
+`python run_eval.py --stress --label before_stress` →
+`results/run_2026-09-30_0111_before_stress.md`. The same five criteria and
+targets:
 
 | Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
 |---|---|---|---|---|---|
-| 1. Retrieved chunk contains the answer | 4 of 5 |  |  |  |  |
-| 2. Every answer names a source | 5 of 5 |  |  |  |  |
-| 3. Gate stops out-of-corpus questions | 4 of 5 |  |  |  |  |
-| 4. | | | | | |
-| 5. | | | | | |
+| 1. Retrieved chunk contains the answer | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 2. Every answer names a source | 5 of 5 | 4/5 | 4/5 | 5/5 | **MISSED** |
+| 3. Gate stops out-of-corpus questions | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 4. Chunks read as complete thoughts | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 5. Named source is the correct source | 4 of 5 | 4/5 | 4/5 | 5/5 | MET |
 
-**Did it help?**
+Scorer (`scorer.py::judge`, answer contains the `expects` fact): the add/drop
+question failed 3/3, the other four passed 3/3.
 
-<!-- Say plainly whether it did, and how you know. If it made things worse,
-     say that — a change that backfired, honestly reported, earns full credit
-     and is more interesting than one that worked. What matters is that you can
-     tell.
+How the counts were made: criterion 1 means a document that holds the
+answer is in `Sources retrieved`. Criterion 2 means the answer text names
+any `.txt` file. Criterion 5 means every file the answer names is one that
+holds the answer (a no-source answer counts as a fail). I counted these per
+run with a small script rather than by eye, and checked the misses by
+reading them.
 
-     Milestone 4. -->
+**Real output, criterion 2 miss.** `generate.py::answer_from_chunks`, run 1,
+"What happens if a student wants to add or drop a course after the
+deadline?". Retrieved `admin_add_drop_deadline.txt` and
+`admin_withdrawal_deadline.txt` among five:
+```
+Based on the provided documents, there is no information explaining what happens if a student tries to add or drop a course *after* the respective deadlines (which are the end of the second week for adding, and the end of week six for dropping). Therefore, I do not have enough information to answer this question.
+```
+No source named. Run 2 was the same; run 3 added
+`(Source: admin_add_drop_deadline.txt)`.
+
+**Near-miss probe (before).** These are in-topic questions whose fact isn't
+in any document ("What professor teaches CS 210?", "How much does a meal
+plan cost per semester?"). The gate lets them through (0.440, 0.484), so
+only the prompt stops a made-up answer. Refused correctly 6/6
+(`results/nearmiss_2026-09-30_before.md`), e.g.:
+```
+I don't have enough information to answer what professor teaches CS 210, as the provided documents do not mention any professors.
+```
+
+## Verdicts
+
+The verdicts are against the **graded** questions and the Unit 1 targets.
+The stress-set row is reported separately and doesn't replace them.
+
+| # | Criterion | Verdict | How I decided |
+|---|---|---|---|
+| 1 | Retrieved chunk contains the answer (4 of 5) | MET | 5/5 in all three runs. Retrieval is deterministic, so this is one result three times, and it clears 4 of 5 with room to spare. |
+| 2 | Every answer names a source (5 of 5) | MET | 15 of 15 answers name a `.txt` file. Not close on the graded set. **On the stress set it was MISSED (4, 4, 5)**. A 5-of-5 target means one uncited answer in any run is a miss, and two runs had one. |
+| 3 | Gate stops out-of-corpus questions (4 of 5) | MET | 5/5 refused in one deterministic pass. The closest out-of-corpus question (0.825) is still 0.225 over the 0.6 cutoff. |
+| 4 | Chunks read as complete thoughts (4 of 5) | MET | All 5 sampled chunks are whole posts with no cut sentence. The sample (`app.py chunks -n 5`) is evenly spaced, not random, so it's the same 5 chunks every time: one measurement, not three. |
+| 5 | Named source is the correct source (4 of 5) | MET | 15 of 15 graded answers name only files that hold the answer. On the stress set it was 4, 4, 5. Every run is still at least 4, so MET there too, but that's the closest call in this whole log. |
+
+**Arguing the opposite.** The strongest case against "all MET" is that
+criterion 5 and criterion 1 can both pass on an answer that's *wrong*.
+Stress-set run 3 cites the correct file and then says the information isn't
+there. My criteria never check whether the answer is right, only whether
+the pieces around it are. That's a flaw in the criteria, not a reason to
+change the verdicts, and it's in What I'd Do Differently.
+
+No criterion was revised. `criteria.md` is unchanged from Unit 1.
+
+## Diagnoses
+
+**Graded set: no misses.** Honestly, that means the targets were set low,
+not that the system is excellent. Every graded question has one short
+document that states the answer in almost the question's own words
+("Midterms are curved"), and every post is a single chunk. So criteria 1,
+4 and 5 were close to guaranteed by the corpus's shape. The one I'd
+tighten most is **criterion 4**. With 88 posts and 88 chunks it can't
+really fail. I'd replace it with "for 4 of 5 questions whose answer spans
+two documents, both documents are in the top 5". That's the case the
+stress set shows is actually hard.
+
+**Stress set: criterion 2 missed. Stage: generation.**
+
+The add/drop question's answer is in retrieval twice over:
+`admin_add_drop_deadline.txt` ("a drop after week two shows as a W on your
+transcript") and `admin_withdrawal_deadline.txt` ("Dropping ends at week
+six. Withdrawal runs to week ten, requires an adviser signature…") were
+both retrieved on every run (best distance 0.292). So it's not loading,
+chunking, embedding or retrieval. The model had both chunks in its prompt.
+
+The mechanism is in `GROUNDING_INSTRUCTION` (`generate.py`). It gave the
+model two options: answer, or "if the documents don't cover the question,
+say you don't have enough information". The question as a student asks it
+("what happens after the deadline") isn't answered by any *single* sentence.
+You have to join "drop after week 2 → W" with "after week 6 it's a
+withdrawal, to week 10". The prompt never said an answer can be assembled
+from two documents, so the model picked "don't cover". Once it's in refusal
+mode, the rule "name the document your answer came from" doesn't apply,
+because there *is* no answer. So in 2 of 3 runs it cited nothing. **One
+cause, two symptoms:** a wrong answer, and a criterion 2 miss.
+
+**Pattern.** The only failure across 30 graded and stress runs is the only
+question whose answer needs two documents combined. Every question with a
+one-document answer passed every run.
+
+**A measurement problem found along the way.** The add/drop `expects`
+phrase ("week six is the latest") contains "latest", a word that appears in
+no document in the corpus. `scorer.py` requires every keyword, so this
+question can **never** pass the scorer, even with a perfect answer. The
+scorer failures on this question are real (I read every answer and they
+really are wrong). But the scorer alone can't tell a fixed answer from a
+broken one here, so for the after-run I judged this question by reading
+it.
+
+## The Improvement
+
+**What I changed:** `GROUNDING_INSTRUCTION` in `generate.py`, and nothing
+else. Chunking, top-k, the gate and retrieval are untouched (commit
+`9a8683d`). The prompt now says: an answer may be spread across documents,
+so combine them. If the documents cover part of the question, answer that
+part and say what's missing rather than refusing all of it. Refuse only if
+nothing bears on the question. Name every document used, including for a
+partial answer.
+
+**Why I picked it:** the diagnosis put the failure in generation. Both
+answer documents were retrieved, and the prompt's answer-or-refuse framing
+turned them into an uncited refusal. So the fix belongs in the prompt, not
+in retrieval. Hybrid search (BM25) would have been the wrong pick:
+retrieval already finds the answer 5/5.
+
+**The risk I measured for:** loosening "refuse if not covered" could make
+the model invent answers to near-miss questions. So I re-ran the near-miss
+probe too.
+
+### Run Log — After
+
+**Graded set:** `python run_eval.py --label after` →
+`results/run_2026-09-30_0115_after.md`
+
+| Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
+|---|---|---|---|---|---|
+| 1. Retrieved chunk contains the answer | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 2. Every answer names a source | 5 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 3. Gate stops out-of-corpus questions | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 4. Chunks read as complete thoughts | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 5. Named source is the correct source | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
+
+Real output, run 1, `generate.py::answer_from_chunks`:
+```
+Yes, the midterms are curved in CS 210 (though the final is not).
+
+Sources used: `course_cs_210_exams.txt` and `course_cs_210.txt`.
+```
+
+**Stress set:** `python run_eval.py --stress --label after_stress`, run
+**twice**: `results/run_2026-09-30_0117_after_stress.md` and
+`results/run_2026-09-30_0118_after_stress.md`. A background run looked
+stalled, so I started a second one, and both finished. Both are real,
+independent passes, so both are reported. That makes six runs.
+
+| Criterion | Target | Run 1 | Run 2 | Run 3 | Run 4 | Run 5 | Run 6 | Verdict |
+|---|---|---|---|---|---|---|---|---|
+| 1. Retrieved chunk contains the answer | 4 of 5 | 5/5 | 5/5 | 5/5 | 5/5 | 5/5 | 5/5 | MET |
+| 2. Every answer names a source | 5 of 5 | 5/5 | 5/5 | 5/5 | 5/5 | 5/5 | 5/5 | MET (was MISSED) |
+| 3. Gate stops out-of-corpus questions | 4 of 5 | 5/5 | 5/5 | 5/5 | 5/5 | 5/5 | 5/5 | MET |
+| 4. Chunks read as complete thoughts | 4 of 5 | 5/5 | 5/5 | 5/5 | 5/5 | 5/5 | 5/5 | MET |
+| 5. Named source is the correct source | 4 of 5 | 5/5 | 5/5 | 5/5 | 5/5 | 5/5 | 5/5 | MET |
+
+Add/drop answer, by reading it: **still wrong in 6/6**, but now *partly*
+right in 5 of the 6 instead of 0 of 3. Real output, run 3 of the 0117 file:
+```
+Based on the provided documents:
+
+* You can add a course through the end of the second week (admin_add_drop_deadline.txt). The documents do not state what happens if a student tries to add a course *after* this deadline.
+* Dropping a course is allowed through the end of week six, though a drop after week two results in a "W" on your transcript (admin_add_drop_deadline.txt, admin_withdrawal_deadline.txt). The documents do not state what happens if a student tries to drop a course *after* the week six deadline.
+
+Documents used: admin_add_drop_deadline.txt, admin_withdrawal_deadline.txt
+```
+
+**Near-miss probe (after):** still refused 6/6, with nothing invented
+(`results/nearmiss_2026-09-30_after.md`). One refusal now also lists the
+CS 210 files it checked, which is harmless.
+
+| | Before | After |
+|---|---|---|
+| Graded set, all 5 criteria | 5/5 ×3 | 5/5 ×3 |
+| Stress set, criterion 2 | 4, 4, 5 (MISSED) | 5 ×6 (MET) |
+| Add/drop answer states the W-after-week-two fact | 0 of 3 | 5 of 6 |
+| Add/drop answer mentions withdrawal to week ten | 0 of 3 | 0 of 6 |
+| Near-miss correctly refused | 6 of 6 | 6 of 6 |
+
+**Did it help?** Yes, on what it targeted, and I can say how I know.
+Criterion 2 on the stress set went from missed (4, 4, 5) to met in all six
+runs, and the near-miss refusals didn't regress. It **did not** fix the
+answer itself. The model now gives the part it can find, but it still
+never connects dropping to withdrawal. So the uncited refusal is gone,
+and the wrong answer is only half-fixed.
 
 ## What's Still Broken
 
-<!-- For each criterion still missed after your fix: what you'd do about it,
-     and why you stopped where you did.
+**The add/drop answer (stress set) is still incomplete in 6 of 6 runs.**
+The model now answers partially, but it treats the withdrawal document as
+unrelated. That's defensible from the text, which literally opens with
+"Withdrawal is a different thing from dropping". But a student asking
+"what if I'm past the drop deadline" needs exactly that document. The next
+thing I'd try is still in generation: a few-shot example in the prompt
+showing a "past deadline → here is the other route" answer. Or I'd check
+whether the question is simply ambiguous, and rewrite it as "…after the
+drop deadline in week six?", then see whether the model links the two.
+I stopped here because the unit allows one change, and this one did what
+it was aimed at (the missing citation). Stacking a second prompt tweak on
+top would make the two impossible to tell apart.
 
-     "I ran out of time" is fine if it's true. Pretending nothing is left is
-     not.
+**The scorer can't measure the add/drop question.** Its `expects` needs
+"latest", which no document says. I left it alone, because rewriting an
+`expects` after seeing the answers is exactly the "loosen it until it
+passes" move this unit warns about. A fix should be written *before* the
+next run, e.g. `expects: "withdraw"`, and it should be said out loud as a
+change.
 
-     Milestone 5. -->
+**Criterion 2 only checks that a source is named, not that it came from the
+right place.** After the fix, one near-miss refusal lists three CS 210
+files, which technically "names a source" on an answer that has none.
+
+No criterion on the graded set is missed, so there's nothing there to fix.
+The honest problem with the graded set is that it was too easy to tell me
+much.
 
 ## What I'd Do Differently
 
-<!-- Knowing what you know now — which of your five criteria would you write
-     differently, and why?
-
-     Milestone 5. -->
+- **Add an answer-correctness criterion.** None of my five checks whether
+  the answer is *right*. They check retrieval, citation, the gate and
+  chunking. A wrong answer that cites the correct file passes criteria 1,
+  2 and 5 (stress-set run 3 before the fix did exactly that). I'd add: "For
+  at least 4 of 5 questions, the answer states the fact in `expects`", with
+  `expects` written from the source's own words so a correct answer *can*
+  match it.
+- **Replace criterion 4.** When every post fits in one chunk, "chunks read
+  as complete thoughts" can't fail. It measured the corpus, not my chunker.
+- **Write questions that need two documents.** Every graded question had a
+  one-document, near-verbatim answer. The single real failure I found was
+  the only question that needed two documents joined. At least two of the
+  five should be like that.
+- **Make criterion 5 say what happens when no source is named.** I had to
+  decide that (it counts as a fail) while scoring, which means the
+  criterion didn't fully define itself.
